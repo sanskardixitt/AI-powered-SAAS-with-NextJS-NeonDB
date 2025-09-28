@@ -1,36 +1,50 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-const isPublicRoute = createRouteMatcher(["/sign-in , sign-up , / , /home "]);
+const isPublicRoute = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/",
+  "/home",
+]);
 
-const isPublicApiRoute = createRouteMatcher(["/api/videos"]);
+const isPublicApiRoute = createRouteMatcher(["/api/videos(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
-  const { userId } = await auth();
+  const session = await auth();
+  const { userId } = session;
   const currentUrl = new URL(req.url);
-  const isAccessingDashboard = currentUrl.pathname === "/home";
-  const isApiRequest = currentUrl.pathname.startsWith("/api/");
-
-  if (userId && isPublicRoute(req) && !isAccessingDashboard) {
+  const pathname = currentUrl.pathname;
+  const isApiRequest = pathname.startsWith("/api/");
+  if (
+    userId &&
+    (pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up"))
+  ) {
+    console.log("Redirecting authenticated user to /home");
     return NextResponse.redirect(new URL("/home", req.url));
   }
-  if (!userId) {
-    if (!isPublicRoute(req) && !isPublicApiRoute(req)) {
-      return NextResponse.redirect(new URL("/sign-in", req.url));
+
+  if (isApiRequest) {
+    if (isPublicApiRoute(req)) {
+      return NextResponse.next();
     }
 
-    if (isApiRequest && !isPublicApiRoute(req)) {
-      return NextResponse.redirect(new URL("/sign-in", req.url));
+    if (!userId) {
+      console.log("Unauthenticated API request - returning 401 JSON");
+      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
     }
+
+    return NextResponse.next();
   }
+
+  if (!userId && !isPublicRoute(req)) {
+    console.log("Redirecting unauthenticated page request to /sign-in");
+    return NextResponse.redirect(new URL("/sign-in", req.url));
+  }
+
   return NextResponse.next();
 });
 
 export const config = {
-  matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-
-    // Always run for API routes
-    "/(api|trpc)(.*)",
-  ],
+  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
 };
