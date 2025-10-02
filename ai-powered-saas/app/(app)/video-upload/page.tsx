@@ -1,50 +1,50 @@
-import React from "react";
+"use client";
+import React, { useState } from "react";
 import axios from "axios";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const VedioUpload = () => {
+function VideoUpload() {
   const [file, setFile] = useState<File | null>(null);
-
-  const [title, setTitle] = useState<string>("");
-  const [description, setDescription] = useState<string>("");
-  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   const router = useRouter();
-  const MaxFileSize = 70 * 1024 * 1024;
-  const handleFileUpload = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
 
+  const MAX_FILE_SIZE = 70 * 1024 * 1024;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!file) return;
-    if (file.size > MaxFileSize) {
-      alert("File is too large");
+
+    if (file.size > MAX_FILE_SIZE) {
+      //TODO: add notification
+      alert("File size too large");
       return;
     }
 
     setIsUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("title", title);
+    formData.append("description", description);
+    formData.append("originalSize", file.size.toString());
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("title", title);
-      formData.append("description", description);
-      formData.append("originalSize", file.size.toString());
+      const response = await axios.post("/api/video-upload", formData);
 
-      try {
-        const response = await axios.post("/api/video-upload", formData);
-        console.log("Upload video success ", response);
-      } catch (error) {
-        console.log("Upload video failed ", error);
-      } finally {
-        setIsUploading(false);
-      }
-    } catch (error) {}
+      router.push("/home");
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Upload Video</h1>
-      <form onSubmit={handleFileUpload} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="label">
             <span className="label-text">Title</span>
@@ -61,17 +61,15 @@ const VedioUpload = () => {
           <label className="label">
             <span className="label-text">Description</span>
           </label>
-          <input
-            type="text"
+          <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="textarea textarea-bordered  w-full"
-            required
+            className="textarea textarea-bordered w-full"
           />
         </div>
         <div>
           <label className="label">
-            <span className="label-text">Video-File</span>
+            <span className="label-text">Video File</span>
           </label>
           <input
             type="file"
@@ -86,12 +84,11 @@ const VedioUpload = () => {
           className="btn btn-primary"
           disabled={isUploading}
         >
-          {" "}
           {isUploading ? "Uploading..." : "Upload Video"}
         </button>
       </form>
     </div>
   );
-};
+}
 
-export default VedioUpload;
+export default VideoUpload;

@@ -1,32 +1,69 @@
 "use client";
+import React, { useState, useEffect, useCallback } from "react";
+import axios from "axios";
+import VideoCard from "@/components/VideoCard";
+import { Video } from "../../../types";
+function Home() {
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-import { useUser } from "@clerk/nextjs";
+  const fetchVideos = useCallback(async () => {
+    try {
+      const response = await axios.get("/api/videos");
+      if (Array.isArray(response.data)) {
+        setVideos(response.data);
+      } else {
+        throw new Error(" Unexpected response format");
+      }
+    } catch (error) {
+      console.log(error);
+      setError("Failed to fetch videos");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-export default function HomePage() {
-  const { user, isLoaded } = useUser();
+  useEffect(() => {
+    fetchVideos();
+  }, [fetchVideos]);
 
-  if (!isLoaded) {
+  const handleDownload = useCallback((url: string, title: string) => {
+    () => {
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `${title}.mp4`);
+      link.setAttribute("target", "_blank");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+  }, []);
+
+  if (loading) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4">Welcome to Home!</h1>
-      {user ? (
-        <div className="space-y-2">
-          <p>
-            <strong>User ID:</strong> {user.id}
-          </p>
-          <p>
-            <strong>Email:</strong> {user.emailAddresses[0]?.emailAddress}
-          </p>
-          <p>
-            <strong>Name:</strong> {user.fullName}
-          </p>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Videos</h1>
+      {videos.length === 0 ? (
+        <div className="text-center text-lg text-gray-500">
+          No videos available
         </div>
       ) : (
-        <p>No user found</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {videos.map((video) => (
+            <VideoCard
+              key={video.id}
+              video={video}
+              onDownload={handleDownload}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
 }
+
+export default Home;
