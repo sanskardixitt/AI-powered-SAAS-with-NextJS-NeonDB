@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## AI-powered SaaS with Next.js and Neon
 
-## Getting Started
+A minimal, production-ready Next.js 15 app for authenticated video upload, storage, and sharing. Authentication uses Clerk. Media is handled by Cloudinary. Data persists in Neon Postgres through Prisma. Styling uses Tailwind CSS. Built on React 19 and the App Router.
 
-First, run the development server:
+## Core Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+User authentication and middleware based route protection
+Video and image upload endpoints backed by Cloudinary
+Public video listing endpoint for discovery
+Typed data model and Prisma migrations on Neon
+
+## Tech Stack
+
+Next.js 15, React 19, TypeScript, Tailwind CSS 4
+Prisma ORM, Neon Postgres
+Clerk authentication, Cloudinary media
+
+## Quick Start
+
+Create .env with required secrets
+
+```env
+DATABASE_URL="postgresql://user:password@neon-host/db?sslmode=require"
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your_cloud_name"
+CLOUDINARY_API_KEY="your_api_key"
+CLOUDINARY_API_SECRET="your_api_secret"
+CLERK_PUBLISHABLE_KEY="your_publishable_key"
+CLERK_SECRET_KEY="your_secret_key"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Install, migrate, run
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+npx prisma migrate deploy && npx prisma generate
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open http://localhost:3000, sign up or sign in, upload a video, then verify it appears in the list and in the database.
 
-## Learn More
+## Data Model
 
-To learn more about Next.js, take a look at the following resources:
+Single Video table with id, title, optional description, Cloudinary publicId, originalSize, compressedSize, duration in seconds, createdAt, updatedAt.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Routes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Public pages at / and /home and auth at /sign-in and /sign-up. Public api at /api/videos. Auth required for /api/video-upload and /api/image-upload. Authenticated users visiting auth pages are redirected to /home.
 
-## Deploy on Vercel
+## Build and Deploy
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run build
+npm run start
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+On platforms like Vercel, set environment variables, ensure Neon requires TLS, and run prisma migrate deploy during deployment.
+
+## Structure
+
+app contains routes and layouts. app/api holds api routes. app/(auth) contains auth pages. app/(app) holds signed-in pages including home, video-upload, social-share. prisma contains schema and migrations. components holds UI like VideoCard. middleware.ts configures Clerk based access control.
